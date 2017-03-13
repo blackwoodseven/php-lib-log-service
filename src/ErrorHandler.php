@@ -31,7 +31,7 @@ class ErrorHandler
             else {
                 $event = new GetResponseForExceptionEvent(
                     $app,
-                    new Request(),
+                    $app['request_stack']->getCurrentRequest(),
                     HttpKernelInterface::MASTER_REQUEST,
                     $e
                 );
