@@ -29,9 +29,10 @@ class ErrorHandler
                 $console->renderException($e, $output);
             }
             else {
+                $currentRequest = $app['request_stack']->getCurrentRequest() ?? new Request();
                 $event = new GetResponseForExceptionEvent(
                     $app,
-                    $app['request_stack']->getCurrentRequest(),
+                    $currentRequest,
                     HttpKernelInterface::MASTER_REQUEST,
                     $e
                 );
