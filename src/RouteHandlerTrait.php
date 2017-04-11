@@ -41,9 +41,12 @@ trait RouteHandlerTrait
     static public function JsonErrorHandler(\Exception $e, Request $request, $code, \Silex\Application $app)
     {
         return $app->json([
+            'title' => $e->getMessage(),
             'message' => $e->getMessage(),
             'code' => $e->getCode(),
             'trace' => (string) $e,
-        ], $code);
+        ], $code, [
+            'Content-Type' => 'application/problem+json',
+        ]);
     }
 }
