@@ -18,18 +18,8 @@ class ErrorHandler
         // @see https://github.com/silexphp/Silex/issues/1016
         $handler = ExceptionHandler::register($app['debug']);
         $handler->setHandler(function ($e) use ($app) {
-            if ($app->offsetExists('console')) {
-                $console = $app['console'];
-                $output = new \Symfony\Component\Console\Output\StreamOutput(
-                    fopen('php://output', 'w'),
-                    \Symfony\Component\Console\Output\OutputInterface::VERBOSITY_DEBUG,
-                    true
-                );
-
-                $console->renderException($e, $output);
-            }
-            else {
-                $currentRequest = $app['request_stack']->getCurrentRequest() ?? new Request();
+            $currentRequest = $app['request_stack']->getCurrentRequest() ?? new Request();
+            if ($currentRequest && $currentRequest->getRequestURI()) {
                 $event = new GetResponseForExceptionEvent(
                     $app,
                     $currentRequest,
@@ -44,6 +34,18 @@ class ErrorHandler
                 $response = $event->getResponse();
                 $response->sendHeaders();
                 $response->sendContent();
+            }
+            elseif ($app->offsetExists('console') && $app['console'] instanceof \Symfony\Component\Console\Application) {
+                $output = new \Symfony\Component\Console\Output\StreamOutput(
+                    fopen('php://output', 'w'),
+                    \Symfony\Component\Console\Output\OutputInterface::VERBOSITY_DEBUG,
+                    true
+                );
+
+                $app['console']->renderException($e, $output);
+            }
+            else {
+                print (string) $e;
             }
         });
     }
