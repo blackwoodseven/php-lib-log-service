@@ -17,7 +17,9 @@
         "monolog/monolog": "^1.22",
         "symfony/console": "^3.2",
         "bartlett/monolog-callbackfilterhandler": "^1.0",
-        "blackwoodseven/php-lib-amqp-service": "^0.7.0"
+    },
+    "suggest": {
+        "blackwoodseven/php-lib-amqp-service": "Log to amqp"
     },
     "require-dev": {
         "phpunit/phpunit": "^5"

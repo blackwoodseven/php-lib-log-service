@@ -11,7 +11,6 @@ use Monolog\Handler\FilterHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Processor\WebProcessor;
 use Bartlett\Monolog\Handler\CallbackFilterHandler;
-use BlackwoodSeven\AmqpService\Monolog\Handler\AmqpHandler;
 use Monolog\ErrorHandler;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -41,7 +40,7 @@ class LogServiceProvider implements ServiceProviderInterface
             // Log all errors from NOTICE and above to amqp.
             if ($app->offsetExists('amqp.exchanges')) {
                 $handler = function () use ($app) {
-                    return new AmqpHandler(
+                    return new \BlackwoodSeven\AmqpService\Monolog\Handler\AmqpHandler(
                         $app['amqp.exchanges'][$app['amqp.logger.exchange_name']],   // Exchange
                         $app['app_id'],                                              // App ID
                         $app['app_id'] . '.log.error',                               // Routing key
