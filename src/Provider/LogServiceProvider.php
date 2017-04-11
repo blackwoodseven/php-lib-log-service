@@ -28,6 +28,16 @@ class LogServiceProvider implements ServiceProviderInterface
         $app['amqp.logger.exchange_name'] = 'log_exchange';
 
         $app['monolog.handlers'] = $app->extend('monolog.handlers', function ($handlers, Application $app) {
+            // Log all errors from NOTICE and above to stderr. Expand newlines.
+            $handler = new StreamHandler('php://stderr');
+            $handler->getFormatter()->includeStacktraces();
+            $handlers[] = new FilterHandler($handler, Logger::NOTICE);
+
+            // Log all DEBUG and INFO to stdout. Expand newlines.
+            $handler = new StreamHandler('php://stdout');
+            $handler->getFormatter()->includeStacktraces();
+            $handlers[] = new FilterHandler($handler, Logger::DEBUG, Logger::INFO);
+
             // Log all errors from NOTICE and above to amqp.
             if ($app->offsetExists('amqp.exchanges')) {
                 $handler = function () use ($app) {
@@ -52,16 +62,6 @@ class LogServiceProvider implements ServiceProviderInterface
                 ]);
                 $handlers[] = $handler;
             }
-
-            // Log all errors from NOTICE and above to stderr. Expand newlines.
-            $handler = new StreamHandler('php://stderr');
-            $handler->getFormatter()->includeStacktraces();
-            $handlers[] = new FilterHandler($handler, Logger::NOTICE);
-
-            // Log all DEBUG and INFO to stdout. Expand newlines.
-            $handler = new StreamHandler('php://stdout');
-            $handler->getFormatter()->includeStacktraces();
-            $handlers[] = new FilterHandler($handler, Logger::DEBUG, Logger::INFO);
 
             return $handlers;
 
