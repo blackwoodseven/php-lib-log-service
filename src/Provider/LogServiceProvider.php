@@ -3,6 +3,7 @@
 namespace BlackwoodSeven\LogService\Provider;
 
 use Silex\Application;
+use Silex\Api\BootableProviderInterface;
 use Pimple\Container;
 use Pimple\ServiceProviderInterface;
 use Silex\Provider\MonologServiceProvider;
@@ -16,7 +17,7 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 
-class LogServiceProvider implements ServiceProviderInterface
+class LogServiceProvider implements ServiceProviderInterface, BootableProviderInterface
 {
 
     public function register(Container $app)
@@ -26,40 +27,63 @@ class LogServiceProvider implements ServiceProviderInterface
 
         $app['amqp.logger.exchange_name'] = 'log_exchange';
 
-        $app['monolog.handlers'] = $app->extend('monolog.handlers', function ($handlers, Application $app) {
+        $app['monolog.handler.stderr'] = function(Container $app) {
             // Log all errors from NOTICE and above to stderr. Expand newlines.
             $handler = new StreamHandler('php://stderr');
             $handler->getFormatter()->includeStacktraces();
-            $handlers[] = new FilterHandler($handler, Logger::NOTICE);
+            return new FilterHandler($handler, Logger::NOTICE);
+        };
 
+        $app['monolog.handler.stdout'] = function(Container $app) {
             // Log all DEBUG and INFO to stdout. Expand newlines.
             $handler = new StreamHandler('php://stdout');
             $handler->getFormatter()->includeStacktraces();
-            $handlers[] = new FilterHandler($handler, Logger::DEBUG, Logger::INFO);
+            return new FilterHandler($handler, Logger::DEBUG, Logger::INFO);
+        };
+
+        $app['monolog.handler.amqp'] = function(Container $app) {
+            $handler = $app['monolog.handler.amqp.wrapped'];
+            $handler = new FilterHandler($handler, Logger::NOTICE);
+            $handler = new CallbackFilterHandler($handler, $app['monolog.handler.amqp.filter_callbacks']);
+
+            return $handler;
+        };
+
+        $app['monolog.handler.amqp.wrapped'] = function(Container $app) {
+            return function() use ($app) {
+                return new \BlackwoodSeven\AmqpService\Monolog\Handler\AmqpHandler(
+                    $app['amqp.exchanges'][$app['amqp.logger.exchange_name']],   // Exchange
+                    $app['app_id'],                                              // App ID
+                    $app['app_id'] . '.log.error',                               // Routing key
+                    'error',                                                     // Type
+                    Logger::NOTICE                                               // Minimum log level
+                );
+            };
+        };
+
+        $app['monolog.handler.amqp.filter_callbacks'] = [
+            function ($record) {
+                // 4xx HTTP errors are not important enought to be sent to the error queue.
+                if (isset($record['context']['exception']) && $record['context']['exception'] instanceof HttpExceptionInterface) {
+                    return floor($record['context']['exception']->getStatusCode() / 100) != 4;
+                }
+
+                return true;
+            }
+        ];
+
+        $app['monolog.handlers'] = $app->extend('monolog.handlers', function ($handlers, Application $app) {
+            if (isset($app['monolog.handler.stderr'])) {
+                $handlers[] = $app['monolog.handler.stderr'];
+            }
+
+            if (isset($app['monolog.handler.stdout'])) {
+                $handlers[] = $app['monolog.handler.stdout'];
+            }
 
             // Log all errors from NOTICE and above to amqp.
-            if ($app->offsetExists('amqp.exchanges')) {
-                $handler = function () use ($app) {
-                    return new \BlackwoodSeven\AmqpService\Monolog\Handler\AmqpHandler(
-                        $app['amqp.exchanges'][$app['amqp.logger.exchange_name']],   // Exchange
-                        $app['app_id'],                                              // App ID
-                        $app['app_id'] . '.log.error',                               // Routing key
-                        'error',                                                     // Type
-                        Logger::NOTICE                                               // Minimum log level
-                    );
-                };
-
-                // Don't log 4xx http errors to error queue.
-                $handler = new FilterHandler($handler, Logger::NOTICE);
-                $handler = new CallbackFilterHandler($handler, [
-                    function ($record) {
-                        if (isset($record['context']['exception']) && $record['context']['exception'] instanceof HttpExceptionInterface) {
-                            return floor($record['context']['exception']->getStatusCode() / 100) != 4;
-                        }
-                        return true;
-                    }
-                ]);
-                $handlers[] = $handler;
+            if (isset($app['monolog.handler.amqp']) && isset($app['amqp.exchanges'])) {
+                $handlers[] = $app['monolog.handler.amqp'];
             }
 
             return $handlers;
@@ -72,10 +96,13 @@ class LogServiceProvider implements ServiceProviderInterface
             return $logger;
         });
 
+        // Log all uncaught errors and exceptions.
+        $app['monolog.use_error_handler'] = true;
+    }
+
+    public function boot(Application $app)
+    {
         // Setup error handlers for web and console respectively.
         \BlackwoodSeven\LogService\ErrorHandler::register($app);
-
-        // Log all uncaught errors and exceptions.
-        \Monolog\ErrorHandler::register($app['logger']);
     }
 }

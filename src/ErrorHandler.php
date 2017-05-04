@@ -13,11 +13,11 @@ class ErrorHandler
 {
     public static function register(\Silex\Application $app)
     {
-        SymfonyErrorHandler::register(null, true);
+        $errorHandler = SymfonyErrorHandler::register(null, true);
 
         // @see https://github.com/silexphp/Silex/issues/1016
-        $handler = ExceptionHandler::register($app['debug']);
-        $handler->setHandler(function ($e) use ($app) {
+        $app['logger.exception_handler'] = ExceptionHandler::register($app['debug']);
+        $app['logger.exception_handler']->setHandler(function ($e) use ($app) {
             $currentRequest = $app['request_stack']->getCurrentRequest() ?? new Request();
             if ($currentRequest && $currentRequest->getRequestURI()) {
                 $event = new GetResponseForExceptionEvent(

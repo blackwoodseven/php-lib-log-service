@@ -18,10 +18,8 @@
         "symfony/console": "^3.2",
         "bartlett/monolog-callbackfilterhandler": "^1.0"
     },
-    "suggest": {
-        "blackwoodseven/php-lib-amqp-service": "Log to amqp"
-    },
     "require-dev": {
+        "blackwoodseven/php-lib-amqp-service": "*",
         "phpunit/phpunit": "^5"
     },
     "minimum-stability": "dev",
