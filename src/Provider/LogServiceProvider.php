@@ -96,8 +96,10 @@ class LogServiceProvider implements ServiceProviderInterface, BootableProviderIn
             return $logger;
         });
 
-        // Log all uncaught errors and exceptions.
-        $app['monolog.use_error_handler'] = true;
+        // The native Monolog error handler does not work well with Symfony\Component\Debug\ErrorHandler
+        // when not all errors are thrown (see Symfony\Component\Debug\ErrorHandler::throwErrors).
+        // Instead we make it invoke Monolog using Symfony\Component\Debug\ErrorHandler::setLoggers().
+        $app['monolog.use_error_handler'] = false;
     }
 
     public function boot(Application $app)

@@ -80,6 +80,33 @@ class ServiceProviderUnitTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($thrown);
     }
 
+    public function testErrorHandlerNonFatal()
+    {
+        $app = new \Silex\Application();
+        $app->register(new LogServiceProvider());
+
+        $handler = new TestHandler();
+        $app['monolog.handlers'] = [$handler];
+
+        $app->boot();
+
+        ob_start();
+
+        trigger_error('this is a user notice');
+        trigger_error('this is a user warning', E_USER_WARNING);
+        fopen();
+
+        $output = ob_get_contents();
+        ob_end_clean();
+        // There should be no output apart except what goes through the loggers.
+        $this->assertEmpty($output);
+
+        $this->assertCount(3, $handler->getRecords());
+        $this->assertTrue($handler->hasRecordThatContains('this is a user notice', Logger::INFO));
+        $this->assertTrue($handler->hasRecordThatContains('this is a user warning', Logger::WARNING));
+        $this->assertTrue($handler->hasRecordThatContains('fopen() expects at least 2 parameters', Logger::WARNING));
+    }
+
     public function testExceptionWeb()
     {
         $initialObLevel = ob_get_level();
