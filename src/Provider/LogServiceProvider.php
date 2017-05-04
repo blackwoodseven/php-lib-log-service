@@ -68,6 +68,17 @@ class LogServiceProvider implements ServiceProviderInterface, BootableProviderIn
                     return floor($record['context']['exception']->getStatusCode() / 100) != 4;
                 }
 
+                // Despite running with ERRMODE == PDO::ERRMODE_EXCEPTION, PDO triggers a PHP warning
+                // in certain situations when the MySQL server does not respond as expected in
+                // addition to throwing an exception. See https://bugs.php.net/bug.php?id=63812
+                // We often catch such exceptions and silently reconnect to the database, so
+                // the adjoining notice can also be ignored.
+                if (strpos($record['message'], 'PDO::query(): MySQL server has gone away') !== false ||
+                    strpos($record['message'], 'Error while sending QUERY packet') !== false) {
+
+                    return false;
+                }
+
                 return true;
             }
         ];

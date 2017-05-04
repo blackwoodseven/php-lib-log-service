@@ -205,4 +205,24 @@ class ServiceProviderUnitTest extends \PHPUnit_Framework_TestCase
         $this->assertCount(1, $handler->getRecords());
         $this->assertTrue($handler->hasRecordThatContains('server error', Logger::WARNING));
     }
+
+    public function testAmqpSkipPdoWarnings()
+    {
+        $app = new \Silex\Application();
+        $app->register(new LogServiceProvider());
+        $app->register(new \BlackwoodSeven\AmqpService\ServiceProvider());
+
+        $handler = new TestHandler();
+        $app['monolog.handler.amqp.wrapped'] = $handler;
+
+        $app['monolog.handlers'] = [$app['monolog.handler.amqp']];
+
+        $app->boot();
+
+        trigger_error('PDO::query(): MySQL server has gone away', E_USER_WARNING);
+        trigger_error('do not ignore this', E_USER_WARNING);
+
+        $this->assertCount(1, $handler->getRecords());
+        $this->assertTrue($handler->hasRecordThatContains('do not ignore this', Logger::WARNING));
+    }
 }
