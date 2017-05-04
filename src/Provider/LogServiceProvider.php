@@ -117,5 +117,18 @@ class LogServiceProvider implements ServiceProviderInterface, BootableProviderIn
     {
         // Setup error handlers for web and console respectively.
         \BlackwoodSeven\LogService\ErrorHandler::register($app);
+
+        // Disable the default behavior, where Console component catches exceptions, prints them and
+        // exists without futher logging.
+        // The Symfony HTTP Kernel also catches exceptions and prints them, but it also logs them,
+        // so that will not cause us problems.
+        if (isset($app['console'])) {
+            $app['console']->setCatchExceptions(false);
+        } elseif (PHP_SAPI === 'cli' &&
+                  isset($GLOBALS['console']) &&
+                  $GLOBALS['console'] instanceof \Symfony\Component\Console\Application) {
+
+            $app['logger']->info(__CLASS__ . ': You seem to be running a console application, but $app["console"] is not defined');
+        }
     }
 }

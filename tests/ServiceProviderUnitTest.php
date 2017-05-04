@@ -143,11 +143,14 @@ class ServiceProviderUnitTest extends \PHPUnit_Framework_TestCase
         $app = new \Silex\Application();
         $app->register(new LogServiceProvider());
         $app['monolog.handlers'] = [];
-        $app->boot();
 
         $e = new \Exception('Lorem ipsum');
 
         $app['console'] = $this->createMock('\Symfony\Component\Console\Application');
+        $app['console']
+            ->expects($this->once())
+            ->method('setCatchExceptions')
+            ->with(false);
         $app['console']
             ->expects($this->once())
             ->method('renderException')
@@ -159,6 +162,8 @@ class ServiceProviderUnitTest extends \PHPUnit_Framework_TestCase
                 print ' ';
             });
 
+        $app->boot();
+
         $app['logger.exception_handler']->handle($e);
 
         // Symfony\Component\Debug\ExceptionHandler adds a level of output buffering,
@@ -166,6 +171,22 @@ class ServiceProviderUnitTest extends \PHPUnit_Framework_TestCase
         while (ob_get_level() > $initialObLevel) {
             ob_end_flush();
         }
+    }
+
+    public function testExceptionConsoleNotRegistered()
+    {
+        $GLOBALS['console'] = new \Symfony\Component\Console\Application();
+
+        $app = new \Silex\Application();
+        $app->register(new LogServiceProvider());
+
+        $handler = new TestHandler();
+        $app['monolog.handlers'] = [$handler];
+
+        $app->boot();
+
+        $this->assertCount(1, $handler->getRecords());
+        $this->assertTrue($handler->hasRecordThatContains('but $app["console"] is not defined', Logger::INFO));
     }
 
     public function testAmqpSkipInfo()
