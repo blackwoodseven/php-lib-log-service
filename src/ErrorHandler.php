@@ -71,6 +71,11 @@ class ErrorHandler
             else {
                 print (string) $e;
             }
+
+            $app['logger']->error(
+                sprintf('Uncaught %s: "%s" at %s line %s', get_class($e), $e->getMessage(), $e->getFile(), $e->getLine()),
+                ['exception' => $e]
+            );
         });
     }
 }
