@@ -74,6 +74,7 @@ class LogServiceProvider implements ServiceProviderInterface, BootableProviderIn
                 // We often catch such exceptions and silently reconnect to the database, so
                 // the adjoining notice can also be ignored.
                 if (strpos($record['message'], 'PDO::query(): MySQL server has gone away') !== false ||
+                    strpos($record['message'], "PDO::query(): Error reading result set's header") !== false ||
                     strpos($record['message'], 'Error while sending QUERY packet') !== false) {
 
                     return false;
