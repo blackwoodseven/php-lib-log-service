@@ -98,11 +98,11 @@ class ServiceProviderUnitTest extends \PHPUnit_Framework_TestCase
 
         $output = ob_get_contents();
         ob_end_clean();
-        // There should be no output apart except what goes through the loggers.
+        // There should be no output apart from what goes through the loggers.
         $this->assertEmpty($output);
 
         $this->assertCount(3, $handler->getRecords());
-        $this->assertTrue($handler->hasRecordThatContains('this is a user notice', Logger::INFO));
+        $this->assertTrue($handler->hasRecordThatContains('this is a user notice', Logger::WARNING));
         $this->assertTrue($handler->hasRecordThatContains('this is a user warning', Logger::WARNING));
         $this->assertTrue($handler->hasRecordThatContains('fopen() expects at least 2 parameters', Logger::WARNING));
     }

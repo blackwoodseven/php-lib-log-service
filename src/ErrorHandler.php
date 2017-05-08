@@ -21,10 +21,10 @@ class ErrorHandler
         // semantics of PHP errors.
         $logger = $app['logger'];
         $nonFatal = [
-            E_NOTICE => [$logger, Logger::INFO],
+            E_NOTICE => [$logger, Logger::WARNING],
             E_WARNING => [$logger, Logger::WARNING],
             E_DEPRECATED => [$logger, Logger::WARNING],
-            E_USER_NOTICE => [$logger, Logger::INFO],
+            E_USER_NOTICE => [$logger, Logger::WARNING],
             E_USER_WARNING => [$logger, Logger::WARNING],
             E_USER_DEPRECATED => [$logger, Logger::WARNING],
             E_STRICT => [$logger, Logger::WARNING],
