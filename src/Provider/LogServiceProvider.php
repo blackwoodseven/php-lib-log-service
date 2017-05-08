@@ -28,17 +28,27 @@ class LogServiceProvider implements ServiceProviderInterface, BootableProviderIn
         $app['amqp.logger.exchange_name'] = 'log_exchange';
 
         $app['monolog.handler.stderr'] = function(Container $app) {
-            // Log all errors from NOTICE and above to stderr. Expand newlines.
-            $handler = new StreamHandler('php://stderr');
-            $handler->getFormatter()->includeStacktraces();
+            // Log all errors from NOTICE and above to stderr.
+            $handler = $app['monolog.handler.stderr.wrapped'];
             return new FilterHandler($handler, Logger::NOTICE);
+        };
+        $app['monolog.handler.stderr.stream'] = 'php://stderr';
+        $app['monolog.handler.stderr.wrapped'] = function(Container $app) {
+            $handler = new StreamHandler($app['monolog.handler.stderr.stream']);
+            $handler->getFormatter()->includeStacktraces();
+            return $handler;
         };
 
         $app['monolog.handler.stdout'] = function(Container $app) {
-            // Log all DEBUG and INFO to stdout. Expand newlines.
-            $handler = new StreamHandler('php://stdout');
-            $handler->getFormatter()->includeStacktraces();
+            // Log all DEBUG and INFO to stdout.
+            $handler = $app['monolog.handler.stdout.wrapped'];
             return new FilterHandler($handler, Logger::DEBUG, Logger::INFO);
+        };
+        $app['monolog.handler.stdout.stream'] = 'php://stdout';
+        $app['monolog.handler.stdout.wrapped'] = function(Container $app) {
+            $handler = new StreamHandler($app['monolog.handler.stdout.stream']);
+            $handler->getFormatter()->includeStacktraces();
+            return $handler;
         };
 
         $app['monolog.handler.amqp'] = function(Container $app) {
@@ -48,7 +58,6 @@ class LogServiceProvider implements ServiceProviderInterface, BootableProviderIn
 
             return $handler;
         };
-
         $app['monolog.handler.amqp.wrapped'] = function(Container $app) {
             return function() use ($app) {
                 return new \BlackwoodSeven\AmqpService\Monolog\Handler\AmqpHandler(
